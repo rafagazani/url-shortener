@@ -1,63 +1,39 @@
 const express = require('express');
 const router = express.Router();
-const Url = require('../models/url');
-const shortid = require('shortid'); // Para gerar URLs curtas
+const shortid = require('shortid');
+const urls = require('../index').urls; // Importa o objeto urls do index.js
 
-router.post('/shorten', async (req, res) => {
+router.post('/shorten', (req, res) => {
     const { originalUrl } = req.body;
     const shortUrl = shortid.generate();
 
-    try {
-        const url = await Url.create({ originalUrl, shortUrl });
-        res.json({ shortUrl: `http://seu-dominio/${url.shortUrl}` }); // Substitua pelo seu domínio
-    } catch (error) {
-        res.status(500).json({ error: 'Erro ao encurtar URL' });
-    }
+    urls[shortUrl] = originalUrl; // Armazena a URL no objeto em memória
+
+    res.json({ shortUrl: `http://seu-dominio/${shortUrl}` });
 });
 
-router.get('/:id', async (req, res) => {
-    try {
-        const url = await Url.findOne({ where: { shortUrl: req.params.id } });
-        if (url) {
-            res.redirect(url.originalUrl);
-        } else {
-            res.status(404).json({ error: 'URL não encontrada' });
-        }
-    } catch (error) {
-        res.status(500).json({ error: 'Erro ao buscar URL' });
-    }
-});
+router.get('/:id', (req, res) => {
+    const originalUrl = urls[req.params.id]; // Busca a URL no objeto em memória
 
-router.get('/date/:date', async (req, res) => {
-    try {
-        const date = new Date(req.params.date);
-        const nextDay = new Date(date);
-        nextDay.setDate(date.getDate() + 1);
-
-        const urls = await Url.findAll({
-            where: {
-                createdAt: {
-                    [Sequelize.Op.between]: [date, nextDay]
-                }
-            }
-        });
-        res.json(urls);
-    } catch (error) {
-        res.status(500).json({ error: 'Erro ao buscar URLs por data' });
-    }
-});
-
-router.get('/find/:short', async (req, res) => {
-    try {
-      const url = await Url.findOne({ where: { shortUrl: req.params.short } });
-      if (url) {
-        res.json(url);
-      } else {
+    if (originalUrl) {
+        res.redirect(originalUrl);
+    } else {
         res.status(404).json({ error: 'URL não encontrada' });
-      }
-    } catch (error) {
-      res.status(500).json({ error: 'Erro ao buscar URL' });
     }
-  });
+});
+
+router.get('/date/:date', (req, res) => {
+    // Como estamos usando apenas memória, não temos data de criação.
+    res.status(501).json({ error: 'Operação não suportada com armazenamento em memória' }); // Retorna erro 501 (Not Implemented)
+});
+
+router.get('/find/:short', (req, res) => {
+    const originalUrl = urls[req.params.short];
+    if (originalUrl) {
+        res.json({ originalUrl: originalUrl, shortUrl: req.params.short });
+    } else {
+        res.status(404).json({ error: 'URL não encontrada' });
+    }
+});
 
 module.exports = router;

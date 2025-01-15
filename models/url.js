@@ -1,25 +1,13 @@
-const { Sequelize, DataTypes } = require('sequelize');
-const sequelize = new Sequelize('database', 'user', 'password', { // Substitua com suas credenciais
-    host: 'localhost',
-    dialect: 'postgres'
-});
+const express = require('express');
+const shortid = require('shortid');
+const app = express();
+const urlsRouter = require('./routes/urls');
 
-const Url = sequelize.define('Url', {
-    originalUrl: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    shortUrl: {
-        type: DataTypes.STRING,
-        unique: true,
-        allowNull: false
-    },
-    createdAt: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
-    }
-});
+const urls = {}; // Objeto para armazenar as URLs em memória
+exports.urls = urls; // Exporta o objeto para ser usado nas rotas
 
-sequelize.sync(); // Cria a tabela se não existir
+app.use(express.json());
+app.use('/urls', urlsRouter);
 
-module.exports = Url;
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
